@@ -3,7 +3,6 @@ use chrono::{DateTime, Utc};
 use discord_rich_presence::error::Error as DiscordError;
 use discord_rich_presence::{DiscordIpc, DiscordIpcClient, activity};
 const DISCORD_APP_ID: &str = "1512156673358172312";
-const DISCORD_ACTIVITY_NAME: &str = "Kakera";
 pub struct DiscordPresence {
     client: DiscordIpcClient,
 }
@@ -35,9 +34,8 @@ impl DiscordPresence {
             assets = assets.large_image(cover_url);
         }
         let activity = activity::Activity::new()
-            .name(DISCORD_ACTIVITY_NAME)
-            .details(format!("Playing {}", vn.title))
-            .state(status_text)
+            .name(vn.title.clone())
+            .details(status_text)
             .timestamps(timestamps)
             .assets(assets)
             .activity_type(activity::ActivityType::Playing);
