@@ -16,6 +16,8 @@ pub struct VisualNovel {
     pub cover_url: Option<String>,
     pub description: Option<String>,
     #[serde(default)]
+    pub vndb_id: Option<String>,
+    #[serde(default)]
     pub is_favourite: bool,
     #[serde(default)]
     pub tags: Vec<String>,
@@ -23,6 +25,8 @@ pub struct VisualNovel {
     pub cover_path: Option<String>,
     #[serde(default)]
     pub executable_path: Option<String>,
+    #[serde(default)]
+    pub game_folder: Option<String>,
     #[serde(default)]
     pub launch_mode: LaunchMode,
     #[serde(default)]
@@ -46,6 +50,36 @@ pub struct VisualNovel {
     #[serde(default)]
     pub active_route: Option<String>,
     pub play_sessions: Vec<PlaySession>,
+}
+impl VisualNovel {
+    ///a new vn with nothing set except its id and title
+    pub fn new(id: u64, title: String) -> Self {
+        Self {
+            id,
+            title,
+            cover_url: None,
+            description: None,
+            vndb_id: None,
+            is_favourite: false,
+            tags: Vec::new(),
+            cover_path: None,
+            executable_path: None,
+            game_folder: None,
+            launch_mode: LaunchMode::default(),
+            steam_app_id: None,
+            wine_binary: None,
+            wine_prefix: None,
+            wine_locale: None,
+            proton_path: None,
+            umu_game_id: default_umu_game_id(),
+            launch_arguments: String::new(),
+            launch_environment: String::new(),
+            notes: String::new(),
+            routes: Vec::new(),
+            active_route: None,
+            play_sessions: Vec::new(),
+        }
+    }
 }
 impl Default for LaunchMode {
     fn default() -> Self {
@@ -119,6 +153,8 @@ pub struct AppSettings {
     #[serde(default)]
     pub discord_custom_cover_url: String,
     #[serde(default)]
+    pub vn_library_folder: Option<String>,
+    #[serde(default)]
     pub library_sort_mode: LibrarySortMode,
     #[serde(default)]
     pub library_filter_mode: LibraryFilterMode,
@@ -133,6 +169,7 @@ impl Default for AppSettings {
             discord_status_text: default_discord_status_text(),
             discord_show_active_route: true,
             discord_custom_cover_url: String::new(),
+            vn_library_folder: None,
             library_sort_mode: LibrarySortMode::default(),
             library_filter_mode: LibraryFilterMode::default(),
         }

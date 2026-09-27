@@ -111,6 +111,14 @@ pub fn DetailView(
 
             div { class: "detail-header",
                 h2 { "{vn.title}" }
+                if let Some(vndb_id) = vn.vndb_id.clone() {
+                    a {
+                        class: "vndb-link",
+                        href: "https://vndb.org/{vndb_id}",
+                        target: "_blank",
+                        "View on VNDB"
+                    }
+                }
                 div { class: "detail-cover-frame",
                     if let Some(cover_src) = cover_source(vn.clone()) {
                         img {

@@ -1,6 +1,7 @@
 mod covers;
 mod discord_presence;
 mod launcher;
+mod library_scan;
 mod logs;
 mod models;
 mod storage;
@@ -14,6 +15,7 @@ use covers::cache_cover_image;
 use discord_presence::DiscordPresence;
 #[cfg(target_os = "linux")]
 use launcher::install_steam_tool_wrapper;
+use library_scan::find_new_vns;
 use launcher::{ToolLaunch, launch_executable, launch_steam_tool, parse_launch_environment};
 
 use logs::{launch_logs_dir, new_launch_log_path, update_latest_launch_log};
@@ -27,6 +29,7 @@ use storage::{
 };
 use system::{is_flatpak_document_portal_path, open_folder, umu_launcher_is_available};
 use views::{AddVnForm, DetailView, LibraryView, NewVN, SettingsView};
+use vndb::search_vns;
 
 use chrono::Utc;
 use dioxus::desktop::{
@@ -34,6 +37,7 @@ use dioxus::desktop::{
     tao::{dpi::LogicalSize, window::ResizeDirection},
 };
 use dioxus::prelude::*;
+use std::path::Path;
 use std::thread;
 use std::time::Instant;
 
@@ -145,6 +149,8 @@ fn App() -> Element {
             None
         }
     });
+
+    let vn_scan_in_progress = use_signal(|| false);
 
     let mut current_view = use_signal(|| AppView::Library);
     let selected_view = current_view.read().clone();
@@ -527,57 +533,17 @@ fn App() -> Element {
 
                                                     let cover_url = new_vn.cover_url.clone();
 
-                                                    let new_vn = VisualNovel {
-                                                        id: next_id,
-                                                        title: new_vn.title,
-                                                        cover_url: new_vn.cover_url,
-                                                        description: new_vn.description,
-                                                        is_favourite: false,
-                                                        tags: new_vn.tags,
-                                                        cover_path: new_vn.cover_path,
-                                                        executable_path: None,
-                                                        launch_mode: LaunchMode::default(),
-                                                        steam_app_id: None,
-                                                        wine_binary: None,
-                                                        wine_prefix: None,
-                                                        wine_locale: None,
-                                                        launch_arguments: String::new(),
-                                                        launch_environment: String::new(),
-                                                        proton_path: None,
-                                                        umu_game_id: default_umu_game_id(),
-                                                        notes: String::new(),
-                                                        routes: Vec::new(),
-                                                        active_route: None,
-                                                        play_sessions: Vec::new(),
-                                                    };
+                                                    let mut vn = VisualNovel::new(next_id, new_vn.title);
+                                                    vn.cover_url = new_vn.cover_url;
+                                                    vn.description = new_vn.description;
+                                                    vn.vndb_id = new_vn.vndb_id;
+                                                    vn.tags = new_vn.tags;
+                                                    vn.cover_path = new_vn.cover_path;
 
-                                                    vns.write().push(new_vn);
+                                                    vns.write().push(vn);
 
                                                     if let Some(cover_url) = cover_url {
-                                                        let mut vns_for_cover = vns;
-
-                                                        spawn(async move {
-                                                            match cache_cover_image(next_id, cover_url).await {
-                                                                Ok(cover_path) => {
-                                                                    for vn in vns_for_cover
-                                                                        .write()
-                                                                        .iter_mut()
-                                                                    {
-                                                                        if vn.id == next_id {
-                                                                            vn.cover_path = Some(cover_path.clone());
-                                                                        }
-                                                                    }
-                                                                    let save_result = save_library(vns_for_cover.read().clone());
-                                                                    if let Err(error) = save_result {
-                                                                        println!("Could not save cached cover path: {error}");
-                                                                    }
-                                                                }
-
-                                                                Err(error) => {
-                                                                    println!("Could not cache cover image: {error}");
-                                                                }
-                                                            }
-                                                        });
+                                                        cache_cover_in_background(vns, next_id, cover_url);
                                                     }
 
                                                     let save_result = save_library(vns.read().clone());
@@ -1383,6 +1349,26 @@ fn App() -> Element {
                                     save_settings_or_log(&settings);
                                 },
 
+                                vn_library_folder: settings.read().vn_library_folder.clone(),
+                                vn_scan_in_progress: *vn_scan_in_progress.read(),
+
+                                on_choose_vn_folder: move |_| {
+                                    let Some(folder) = rfd::FileDialog::new().pick_folder() else {
+                                        return;
+                                    };
+                                    let folder = folder.to_string_lossy().to_string();
+                                    settings.write().vn_library_folder = Some(folder.clone());
+                                    save_settings_or_log(&settings);
+                                    spawn(scan_vn_folder(folder, vns, notification, vn_scan_in_progress));
+                                },
+
+                                on_scan_vn_folder: move |_| {
+                                    let Some(folder) = settings.read().vn_library_folder.clone() else {
+                                        return;
+                                    };
+                                    spawn(scan_vn_folder(folder, vns, notification, vn_scan_in_progress));
+                                },
+
                                 on_open_logs_folder: move |_| {
                                     match launch_logs_dir() {
                                         Ok(path) => {
@@ -1418,6 +1404,152 @@ fn App() -> Element {
 
             }
         }
+}
+
+///downloads a vn's cover in the background and saves its cached path
+fn cache_cover_in_background(mut vns: Signal<Vec<VisualNovel>>, vn_id: u64, cover_url: String) {
+    spawn(async move {
+        match cache_cover_image(vn_id, cover_url).await {
+            Ok(cover_path) => {
+                for vn in vns.write().iter_mut() {
+                    if vn.id == vn_id {
+                        vn.cover_path = Some(cover_path.clone());
+                    }
+                }
+                save_vns_or_log(&vns, "Could not save cached cover path".to_string());
+            }
+            Err(error) => {
+                println!("Could not cache cover image: {error}");
+            }
+        }
+    });
+}
+
+///adds every new game folder in the vn folder to the library, matched against vndb
+async fn scan_vn_folder(
+    vn_folder: String,
+    mut vns: Signal<Vec<VisualNovel>>,
+    mut notification: Signal<Option<AppNotification>>,
+    mut vn_scan_in_progress: Signal<bool>,
+) {
+    if *vn_scan_in_progress.read() {
+        return;
+    }
+    vn_scan_in_progress.set(true);
+
+    let found_vns = match find_new_vns(Path::new(&vn_folder), &vns.read()) {
+        Ok(found_vns) => found_vns,
+        Err(error) => {
+            notification.set(Some(AppNotification {
+                level: NotificationLevel::Error,
+                message: format!("Could not scan {vn_folder}: {error}"),
+            }));
+            vn_scan_in_progress.set(false);
+            return;
+        }
+    };
+
+    let mut added_count = 0;
+    let mut linked_count = 0;
+    let mut unmatched_titles = Vec::new();
+
+    for (index, found_vn) in found_vns.iter().enumerate() {
+        notification.set(Some(AppNotification {
+            level: NotificationLevel::Info,
+            message: format!(
+                "Scanning VN folder ({}/{}): {}",
+                index + 1,
+                found_vns.len(),
+                found_vn.folder_name
+            ),
+        }));
+
+        let vndb_match = match search_vns(found_vn.search_title.clone()).await {
+            Ok(results) => results.into_iter().next(),
+            Err(error) => {
+                println!("VNDB search for {} failed: {error}", found_vn.search_title);
+                None
+            }
+        };
+
+        //a vn that was added by hand gets linked to the folder instead of duplicated
+        let existing_vn_id = vns
+            .read()
+            .iter()
+            .find(|vn| {
+                let same_vndb_id = vndb_match
+                    .as_ref()
+                    .is_some_and(|result| vn.vndb_id.as_ref() == Some(&result.id));
+                let same_title = vndb_match
+                    .as_ref()
+                    .is_some_and(|result| vn.title.eq_ignore_ascii_case(&result.title));
+                (same_vndb_id || same_title) && vn.game_folder.is_none()
+            })
+            .map(|vn| vn.id);
+
+        if let Some(existing_vn_id) = existing_vn_id {
+            for vn in vns.write().iter_mut() {
+                if vn.id == existing_vn_id {
+                    vn.game_folder = Some(found_vn.folder_path.clone());
+                    if vn.executable_path.is_none() {
+                        vn.executable_path = found_vn.executable_path.clone();
+                    }
+                    if vn.vndb_id.is_none() {
+                        vn.vndb_id = vndb_match.as_ref().map(|result| result.id.clone());
+                    }
+                }
+            }
+            linked_count += 1;
+        } else {
+            let next_id = vns.read().iter().map(|vn| vn.id).max().unwrap_or(0) + 1;
+            let mut vn = VisualNovel::new(next_id, found_vn.folder_name.clone());
+            vn.game_folder = Some(found_vn.folder_path.clone());
+            vn.executable_path = found_vn.executable_path.clone();
+            if !cfg!(target_os = "windows") {
+                vn.launch_mode = LaunchMode::Wine;
+            }
+
+            match &vndb_match {
+                Some(result) => {
+                    vn.title = result.title.clone();
+                    vn.vndb_id = Some(result.id.clone());
+                    vn.description = result.description.clone();
+                    vn.cover_url = result.image.as_ref().and_then(|image| image.url.clone());
+                }
+                None => unmatched_titles.push(found_vn.folder_name.clone()),
+            }
+
+            let cover_url = vn.cover_url.clone();
+            vns.write().push(vn);
+            if let Some(cover_url) = cover_url {
+                cache_cover_in_background(vns, next_id, cover_url);
+            }
+            added_count += 1;
+        }
+
+        save_vns_or_log(&vns, "Could not save library".to_string());
+    }
+
+    let mut message = if found_vns.is_empty() {
+        "No new VNs found in the VN folder.".to_string()
+    } else {
+        format!("Added {added_count} VN(s) and linked {linked_count} existing VN(s).")
+    };
+    if !unmatched_titles.is_empty() {
+        message.push_str(&format!(
+            " Not found on VNDB: {}.",
+            unmatched_titles.join(", ")
+        ));
+    }
+    notification.set(Some(AppNotification {
+        level: if unmatched_titles.is_empty() {
+            NotificationLevel::Info
+        } else {
+            NotificationLevel::Warning
+        },
+        message,
+    }));
+    vn_scan_in_progress.set(false);
 }
 
 ///updates one vn then saves the whole library

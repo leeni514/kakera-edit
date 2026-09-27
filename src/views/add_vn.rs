@@ -7,6 +7,7 @@ pub struct NewVN {
     pub cover_url: Option<String>,
     pub cover_path: Option<String>,
     pub description: Option<String>,
+    pub vndb_id: Option<String>,
     pub tags: Vec<String>,
 }
 ///the form to add a visual novel
@@ -104,6 +105,7 @@ pub fn AddVnForm(on_add: EventHandler<NewVN>, on_close: EventHandler<()>) -> Ele
                             } else {
                                 Some(description.read().clone())
                             },
+                            vndb_id: loaded_result_id.read().clone(),
                             tags: parse_tags(tags_text.read().clone()),
                         });
                     title.set(String::new());

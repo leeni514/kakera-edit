@@ -2015,3 +2015,12 @@ select option {
   left: 0;
   cursor: sw-resize;
 }
+
+.vndb-link {
+  color: var(--muted);
+  font-size: 0.9em;
+}
+
+.vndb-link:hover {
+  color: var(--accent);
+}
