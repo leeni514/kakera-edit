@@ -152,6 +152,8 @@ pub struct AppSettings {
     pub discord_show_active_route: bool,
     #[serde(default)]
     pub discord_custom_cover_url: String,
+    #[serde(default = "default_true")]
+    pub discord_show_idle_presence: bool,
     #[serde(default = "default_discord_idle_name")]
     pub discord_idle_name: String,
     #[serde(default)]
@@ -166,6 +168,9 @@ pub struct AppSettings {
 fn default_discord_status_text() -> String {
     "Reading".to_string()
 }
+fn default_true() -> bool {
+    true
+}
 fn default_discord_idle_name() -> String {
     "Kakera".to_string()
 }
@@ -176,6 +181,7 @@ impl Default for AppSettings {
             discord_status_text: default_discord_status_text(),
             discord_show_active_route: true,
             discord_custom_cover_url: String::new(),
+            discord_show_idle_presence: true,
             discord_idle_name: default_discord_idle_name(),
             discord_idle_image_url: String::new(),
             vn_library_folder: None,
