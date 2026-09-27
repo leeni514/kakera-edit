@@ -36,7 +36,7 @@
 
       kakeraPackage = pkgs.rustPlatform.buildRustPackage {
         pname = "kakera";
-        version = "0.1.4";
+        version = "0.1.5";
         src = pkgs.lib.cleanSource ./.;
         cargoLock.lockFile = ./Cargo.lock;
 
