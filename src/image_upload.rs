@@ -20,7 +20,10 @@ pub async fn upload_image(path: PathBuf) -> Result<String, Box<dyn std::error::E
     let form = Form::new()
         .text("reqtype", "fileupload")
         .part("fileToUpload", Part::bytes(image_bytes).file_name(file_name));
-    let response_text = reqwest::Client::new()
+    //catbox drops connections that don't send a user agent
+    let response_text = reqwest::Client::builder()
+        .user_agent(concat!("Kakera/", env!("CARGO_PKG_VERSION")))
+        .build()?
         .post(CATBOX_UPLOAD_URL)
         .multipart(form)
         .send()
