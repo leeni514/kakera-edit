@@ -2024,3 +2024,28 @@ select option {
 .vndb-link:hover {
   color: var(--accent);
 }
+
+.image-drop-zone {
+  display: grid;
+  place-items: center;
+  min-height: 96px;
+  padding: var(--space-3);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  cursor: pointer;
+  text-align: center;
+}
+
+.image-drop-zone:hover,
+.image-drop-zone.drag-over {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.image-drop-preview {
+  max-width: 96px;
+  max-height: 96px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}

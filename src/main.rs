@@ -1,5 +1,6 @@
 mod covers;
 mod discord_presence;
+mod image_upload;
 mod launcher;
 mod library_scan;
 mod logs;
@@ -12,7 +13,7 @@ mod vndb;
 mod wine;
 
 use covers::cache_cover_image;
-use discord_presence::DiscordPresence;
+use image_upload::upload_image;
 #[cfg(target_os = "linux")]
 use launcher::install_steam_tool_wrapper;
 use library_scan::find_new_vns;
@@ -151,6 +152,9 @@ fn App() -> Element {
     });
 
     let vn_scan_in_progress = use_signal(|| false);
+    let mut idle_image_uploading = use_signal(|| false);
+
+    use_hook(|| refresh_idle_presence(settings.read().clone()));
 
     let mut current_view = use_signal(|| AppView::Library);
     let selected_view = current_view.read().clone();
@@ -754,24 +758,11 @@ fn App() -> Element {
 
                                                                                 }),
                                                                             );
-                                                                        let discord_presence = if settings
-                                                                            .read()
-                                                                            .discord_rich_presence_enabled
-                                                                        {
-                                                                            match DiscordPresence::start_for_vn(
-                                                                                &presence_vn,
-                                                                                started_time,
-                                                                                settings.read().clone(),
-                                                                            ) {
-                                                                                Ok(presence) => Some(presence),
-                                                                                Err(error) => {
-                                                                                    println!("Could not start Discord Rich Presence: {error}");
-                                                                                    None
-                                                                                }
-                                                                            }
-                                                                        } else {
-                                                                            None
-                                                                        };
+                                                                        discord_presence::show_vn(
+                                                                            &presence_vn,
+                                                                            started_time,
+                                                                            &settings.read(),
+                                                                        );
                                                                         thread::spawn(move || {
                                                                             let wait_result = child.wait();
                                                                             if let Some(log_path) = launch_log_path {
@@ -807,11 +798,7 @@ fn App() -> Element {
                                                                                     println!("Could not monitor VN process: {error}");
                                                                                 }
                                                                             }
-                                                                            if let Some(presence) = discord_presence {
-                                                                                if let Err(error) = presence.clear() {
-                                                                                    println!("Could not clear Discord Rich Presence: {error}");
-                                                                                }
-                                                                            }
+                                                                            discord_presence::vn_closed(&load_settings().unwrap_or_default());
                                                                         });
                                                                     }
                                                                     Err(error) => {
@@ -1315,6 +1302,8 @@ fn App() -> Element {
                                     if let Err(error) = save_result {
                                         println!("Could not save settings: {error}");
                                     }
+
+                                    refresh_idle_presence(settings.read().clone());
                                 },
 
                                 on_open_data_folder: move |_| {
@@ -1347,6 +1336,45 @@ fn App() -> Element {
                                 on_discord_custom_cover_url_change: move |cover_url| {
                                     settings.write().discord_custom_cover_url = cover_url;
                                     save_settings_or_log(&settings);
+                                },
+
+                                discord_idle_name: settings.read().discord_idle_name.clone(),
+                                discord_idle_image_url: settings.read().discord_idle_image_url.clone(),
+                                idle_image_uploading: *idle_image_uploading.read(),
+
+                                on_discord_idle_name_change: move |idle_name| {
+                                    settings.write().discord_idle_name = idle_name;
+                                    save_settings_or_log(&settings);
+                                    refresh_idle_presence(settings.read().clone());
+                                },
+
+                                on_idle_image_pick: move |path| {
+                                    if *idle_image_uploading.read() {
+                                        return;
+                                    }
+                                    idle_image_uploading.set(true);
+                                    spawn(async move {
+                                        match upload_image(path).await {
+                                            Ok(image_url) => {
+                                                settings.write().discord_idle_image_url = image_url;
+                                                save_settings_or_log(&settings);
+                                                refresh_idle_presence(settings.read().clone());
+                                            }
+                                            Err(error) => {
+                                                notification.set(Some(AppNotification {
+                                                    level: NotificationLevel::Error,
+                                                    message: format!("Could not upload idle image: {error}"),
+                                                }));
+                                            }
+                                        }
+                                        idle_image_uploading.set(false);
+                                    });
+                                },
+
+                                on_idle_image_remove: move |_| {
+                                    settings.write().discord_idle_image_url = String::new();
+                                    save_settings_or_log(&settings);
+                                    refresh_idle_presence(settings.read().clone());
                                 },
 
                                 vn_library_folder: settings.read().vn_library_folder.clone(),
@@ -1404,6 +1432,11 @@ fn App() -> Element {
 
             }
         }
+}
+
+///updates the idle discord presence off the ui thread, since connecting to discord can block
+fn refresh_idle_presence(settings: AppSettings) {
+    thread::spawn(move || discord_presence::show_idle(&settings));
 }
 
 ///downloads a vn's cover in the background and saves its cached path
