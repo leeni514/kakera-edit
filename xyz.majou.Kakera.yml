@@ -93,6 +93,11 @@ modules:
     sources:
       - cargo-sources.json
 
-      - type: git
-        url: https://github.com/enotan/kakera.git
-        tag: v0.1.5
+      # build the checked-out commit, so CI packages this fork's code
+      - type: dir
+        path: .
+        skip:
+          - .git
+          - target
+          - flatpak-build
+          - flatpak-repo
