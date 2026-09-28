@@ -1,4 +1,4 @@
-use crate::models::{LaunchMode, StoryRoute, VisualNovel};
+use crate::models::{format_playtime, LaunchMode, StoryRoute, VisualNovel};
 use crate::views::library::cover_source;
 use crate::vn_markup::{DescriptionPart, parse_description};
 use crate::wine::{ProtonRunner, SteamPrefix, WineRunner};
@@ -826,15 +826,6 @@ fn format_started_at(started_at: String) -> String {
         Err(_error) => return started_at,
     };
     parsed_time.format("%Y-%m-%d %H:%M:%S").to_string()
-}
-fn format_playtime(total_seconds: u64) -> String {
-    let hours = total_seconds as f64 / 3600.0;
-    if hours < 1.0 {
-        let minutes = total_seconds / 60;
-        format!("{minutes} min")
-    } else {
-        format!("{hours:.1} hrs")
-    }
 }
 ///need a component because dioxus hates match or something
 #[component]

@@ -1,18 +1,27 @@
-use crate::models::{AppSettings, VisualNovel};
+use crate::models::{AppSettings, VisualNovel, format_playtime};
+use crate::storage::load_settings;
 use chrono::{DateTime, Utc};
 use discord_rich_presence::error::Error as DiscordError;
 use discord_rich_presence::{DiscordIpc, DiscordIpcClient, activity};
 use std::sync::{Mutex, MutexGuard, OnceLock};
+use std::thread;
+use std::time::Duration;
 const DISCORD_APP_ID: &str = "1512156673358172312";
+///how often the vn presence is resent so the total playtime line stays current
+const PLAYTIME_REFRESH_INTERVAL: Duration = Duration::from_secs(60);
 ///the one discord connection kakera keeps open, shared by the idle and vn presence
 struct PresenceState {
     client: Option<DiscordIpcClient>,
     running_vn_count: u32,
+    ///the most recently launched vn that's still running, with when it started
+    playing: Option<(VisualNovel, DateTime<Utc>)>,
 }
 static PRESENCE: Mutex<PresenceState> = Mutex::new(PresenceState {
     client: None,
     running_vn_count: 0,
+    playing: None,
 });
+static PLAYTIME_REFRESHER: OnceLock<()> = OnceLock::new();
 ///when kakera was opened, used as the idle presence start time
 static APP_STARTED_AT: OnceLock<DateTime<Utc>> = OnceLock::new();
 ///shows the idle presence (or clears it when rich presence is off), unless a vn is running
@@ -26,13 +35,33 @@ pub fn show_idle(settings: &AppSettings) {
 pub fn show_vn(vn: &VisualNovel, started_at: DateTime<Utc>, settings: &AppSettings) {
     let mut state = lock_presence();
     state.running_vn_count += 1;
+    state.playing = Some((vn.clone(), started_at));
     update_activity(&mut state, settings, vn_activity(vn, started_at, settings));
+    drop(state);
+    PLAYTIME_REFRESHER.get_or_init(|| {
+        thread::spawn(refresh_playtime_forever);
+    });
+}
+///resends the vn presence every minute so the total playtime line keeps counting
+fn refresh_playtime_forever() {
+    loop {
+        thread::sleep(PLAYTIME_REFRESH_INTERVAL);
+        //read the saved settings so changes made while playing (like turning presence off) stick
+        let Ok(settings) = load_settings() else {
+            continue;
+        };
+        let mut state = lock_presence();
+        if let Some((vn, started_at)) = state.playing.clone() {
+            update_activity(&mut state, &settings, vn_activity(&vn, started_at, &settings));
+        }
+    }
 }
 ///goes back to the idle presence once the last running vn closes
 pub fn vn_closed(settings: &AppSettings) {
     let mut state = lock_presence();
     state.running_vn_count = state.running_vn_count.saturating_sub(1);
     if state.running_vn_count == 0 {
+        state.playing = None;
         update_activity(&mut state, settings, idle_activity(settings));
     }
 }
@@ -62,6 +91,11 @@ fn vn_activity(
     settings: &AppSettings,
 ) -> activity::Activity<'static> {
     let timestamps = activity::Timestamps::new().start(started_at.timestamp_millis());
+    let session_seconds = (Utc::now() - started_at).num_seconds().max(0) as u64;
+    let playtime_text = format!(
+        "{} played",
+        format_playtime(vn.total_playtime_seconds() + session_seconds)
+    );
     let mut assets = activity::Assets::new().large_text(vn.title.clone());
     let status_text = if settings.discord_show_active_route {
         match vn.active_route.clone() {
@@ -86,6 +120,7 @@ fn vn_activity(
     activity::Activity::new()
         .name(vn.title.clone())
         .details(status_text)
+        .state(playtime_text)
         .timestamps(timestamps)
         .assets(assets)
         .activity_type(activity::ActivityType::Playing)
