@@ -99,14 +99,14 @@ impl Default for LaunchMode {
         LaunchMode::Native
     }
 }
-///"35 min" under an hour, "42.5 hrs" after
+///"35m" under an hour, "42h 31m" after
 pub fn format_playtime(total_seconds: u64) -> String {
-    let hours = total_seconds as f64 / 3600.0;
-    if hours < 1.0 {
-        let minutes = total_seconds / 60;
-        format!("{minutes} min")
+    let hours = total_seconds / 3600;
+    let minutes = total_seconds % 3600 / 60;
+    if hours == 0 {
+        format!("{minutes}m")
     } else {
-        format!("{hours:.1} hrs")
+        format!("{hours}h {minutes}m")
     }
 }
 pub fn default_umu_game_id() -> String {
