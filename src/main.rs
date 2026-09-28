@@ -1347,14 +1347,7 @@ fn App() -> Element {
                                     save_settings_or_log(&settings);
                                 },
 
-                                discord_show_idle_presence: settings.read().discord_show_idle_presence,
                                 discord_idle_name: settings.read().discord_idle_name.clone(),
-
-                                on_discord_show_idle_presence_change: move |enabled| {
-                                    settings.write().discord_show_idle_presence = enabled;
-                                    save_settings_or_log(&settings);
-                                    refresh_idle_presence(settings.read().clone());
-                                },
                                 discord_idle_image_url: settings.read().discord_idle_image_url.clone(),
                                 idle_image_uploading: *idle_image_uploading.read(),
 

@@ -26,7 +26,7 @@ pub fn show_idle(settings: &AppSettings) {
 pub fn show_vn(vn: &VisualNovel, started_at: DateTime<Utc>, settings: &AppSettings) {
     let mut state = lock_presence();
     state.running_vn_count += 1;
-    update_activity(&mut state, settings, Some(vn_activity(vn, started_at, settings)));
+    update_activity(&mut state, settings, vn_activity(vn, started_at, settings));
 }
 ///goes back to the idle presence once the last running vn closes
 pub fn vn_closed(settings: &AppSettings) {
@@ -39,11 +39,7 @@ pub fn vn_closed(settings: &AppSettings) {
 fn lock_presence() -> MutexGuard<'static, PresenceState> {
     PRESENCE.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
 }
-///none when the user only wants presence while a vn is running
-fn idle_activity(settings: &AppSettings) -> Option<activity::Activity<'static>> {
-    if !settings.discord_show_idle_presence {
-        return None;
-    }
+fn idle_activity(settings: &AppSettings) -> activity::Activity<'static> {
     let started_at = APP_STARTED_AT.get_or_init(Utc::now);
     let name = if settings.discord_idle_name.trim().is_empty() {
         "Kakera".to_string()
@@ -54,13 +50,11 @@ fn idle_activity(settings: &AppSettings) -> Option<activity::Activity<'static>> 
     if !settings.discord_idle_image_url.is_empty() {
         assets = assets.large_image(settings.discord_idle_image_url.clone());
     }
-    Some(
-        activity::Activity::new()
-            .name(name)
-            .timestamps(activity::Timestamps::new().start(started_at.timestamp_millis()))
-            .assets(assets)
-            .activity_type(activity::ActivityType::Playing),
-    )
+    activity::Activity::new()
+        .name(name)
+        .timestamps(activity::Timestamps::new().start(started_at.timestamp_millis()))
+        .assets(assets)
+        .activity_type(activity::ActivityType::Playing)
 }
 fn vn_activity(
     vn: &VisualNovel,
@@ -96,12 +90,11 @@ fn vn_activity(
         .assets(assets)
         .activity_type(activity::ActivityType::Playing)
 }
-///sends the activity to discord, clears it when there's none to show,
-///and disconnects when rich presence is turned off
+///sends the activity to discord, or clears it when rich presence is turned off
 fn update_activity(
     state: &mut PresenceState,
     settings: &AppSettings,
-    activity: Option<activity::Activity<'static>>,
+    activity: activity::Activity<'static>,
 ) {
     if !settings.discord_rich_presence_enabled {
         if let Some(mut client) = state.client.take() {
@@ -110,17 +103,6 @@ fn update_activity(
         }
         return;
     }
-    let Some(activity) = activity else {
-        if let Some(client) = &mut state.client {
-            if let Err(error) = client.clear_activity() {
-                println!("Could not clear Discord Rich Presence: {error}");
-                state.client = None;
-            } else {
-                let _ = client.recv();
-            }
-        }
-        return;
-    };
     //discord may have restarted since the last update, so reconnect once on failure
     let result = set_activity(state, activity.clone()).or_else(|_| {
         state.client = None;

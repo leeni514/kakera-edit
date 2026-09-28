@@ -8,7 +8,6 @@ pub fn SettingsView(
     discord_status_text: String,
     discord_show_active_route: bool,
     discord_custom_cover_url: String,
-    discord_show_idle_presence: bool,
     discord_idle_name: String,
     discord_idle_image_url: String,
     idle_image_uploading: bool,
@@ -19,7 +18,6 @@ pub fn SettingsView(
     on_discord_status_text_change: EventHandler<String>,
     on_discord_show_active_route_change: EventHandler<bool>,
     on_discord_custom_cover_url_change: EventHandler<String>,
-    on_discord_show_idle_presence_change: EventHandler<bool>,
     on_discord_idle_name_change: EventHandler<String>,
     on_idle_image_pick: EventHandler<PathBuf>,
     on_idle_image_remove: EventHandler<()>,
@@ -92,17 +90,6 @@ pub fn SettingsView(
                 }
                 p { class: "setting-help", "Show the VN being played on your Discord profile." }
                 label { class: "setting-row",
-                    span { "Show while idle" }
-                    input {
-                        class: "setting-checkbox",
-                        r#type: "checkbox",
-                        checked: discord_show_idle_presence,
-                        onchange: move |event| {
-                            on_discord_show_idle_presence_change.call(event.checked());
-                        },
-                    }
-                }
-                label { class: "setting-row",
                     span { "Idle name" }
                     input {
                         value: "{discord_idle_name_value}",
@@ -164,7 +151,7 @@ pub fn SettingsView(
                     }
                 }
                 p { class: "setting-help",
-                    "With \"Show while idle\" on, the idle name and image are shown on Discord while Kakera is open and no VN is running. Turn it off to only show presence while playing. The image is also used for VNs without a cover. Images are uploaded to catbox.moe, so anyone with the link can see them."
+                    "Shown on Discord while Kakera is open and no VN is running. The image is also used for VNs without a cover. Images are uploaded to catbox.moe, so anyone with the link can see them."
                 }
             }
             div { class: "settings-section",
