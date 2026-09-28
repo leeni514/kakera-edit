@@ -55,20 +55,6 @@ pub fn save_library(library: Vec<VisualNovel>) -> Result<(), io::Error> {
     fs::write(library_file, json_text)?;
     Ok(())
 }
-///adds one play session to the save file
-pub fn add_play_session_to_library(
-    vn_id: u64,
-    play_session: crate::models::PlaySession,
-) -> Result<(), io::Error> {
-    let mut library = load_library()?;
-    for vn in library.iter_mut() {
-        if vn.id == vn_id {
-            vn.play_sessions.push(play_session.clone());
-        }
-    }
-    save_library(library)?;
-    Ok(())
-}
 ///returns the path where settings are stored
 pub fn settings_file_path() -> Result<PathBuf, io::Error> {
     Ok(kakera_data_dir()?.join("settings.json"))

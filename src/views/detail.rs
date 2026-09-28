@@ -20,6 +20,7 @@ pub fn DetailView(
     steam_prefixes: Vec<SteamPrefix>,
     steam_launch_option: String,
     on_notes_change: EventHandler<(u64, String)>,
+    on_previous_playtime_change: EventHandler<(u64, u64)>,
     on_route_add: EventHandler<(u64, String)>,
     on_route_toggle: EventHandler<(u64, String)>,
     on_executable_path_change: EventHandler<(u64, String)>,
@@ -100,12 +101,9 @@ pub fn DetailView(
     let selected_tab = active_tab.read().clone();
     let mut launch_settings_are_open = use_signal(|| false);
     let launch_settings_open = *launch_settings_are_open.read();
-    let total_playtime_seconds: u64 = vn
-        .play_sessions
-        .iter()
-        .map(|session| session.duration_seconds)
-        .sum();
-    let total_playtime_text = format_playtime(total_playtime_seconds);
+    let total_playtime_text = format_playtime(vn.total_playtime_seconds());
+    let previous_playtime_hours = vn.previous_playtime_seconds / 3600;
+    let previous_playtime_minutes = vn.previous_playtime_seconds % 3600 / 60;
     rsx! {
         section { class: "detail-panel",
 
@@ -691,6 +689,39 @@ pub fn DetailView(
                         div {
                             span { class: "stat-label", "Sessions recorded" }
                             strong { "{vn.play_sessions.len()}" }
+                        }
+                    }
+                    div { class: "previous-playtime",
+                        span { class: "stat-label", "Playtime before Kakera" }
+                        label {
+                            input {
+                                r#type: "number",
+                                min: "0",
+                                value: "{previous_playtime_hours}",
+                                onchange: move |event| {
+                                    let hours = event.value().trim().parse::<u64>().unwrap_or(0);
+                                    on_previous_playtime_change
+                                        .call((vn.id, hours * 3600 + previous_playtime_minutes * 60));
+                                },
+                            }
+                            "h"
+                        }
+                        label {
+                            input {
+                                r#type: "number",
+                                min: "0",
+                                max: "59",
+                                value: "{previous_playtime_minutes}",
+                                onchange: move |event| {
+                                    let minutes = event.value().trim().parse::<u64>().unwrap_or(0).min(59);
+                                    on_previous_playtime_change
+                                        .call((vn.id, previous_playtime_hours * 3600 + minutes * 60));
+                                },
+                            }
+                            "m"
+                        }
+                        p { class: "setting-help",
+                            "Time you already played before adding this VN. It's added to the total above."
                         }
                     }
                     h3 { "Play sessions" }

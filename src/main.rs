@@ -25,7 +25,7 @@ use models::{
     NotificationLevel, PlaySession, StoryRoute, VisualNovel, default_umu_game_id,
 };
 use storage::{
-    add_play_session_to_library, kakera_data_dir, load_library, load_settings, save_library,
+    kakera_data_dir, load_library, load_settings, save_library,
     save_settings,
 };
 use system::{is_flatpak_document_portal_path, open_folder, umu_launcher_is_available};
@@ -203,7 +203,7 @@ fn App() -> Element {
             filtered_vns.sort_by(|a, b| latest_played_at(b).cmp(&latest_played_at(a)));
         }
         LibrarySortMode::MostPlaytime => {
-            filtered_vns.sort_by(|a, b| total_playtime_seconds(b).cmp(&total_playtime_seconds(a)));
+            filtered_vns.sort_by(|a, b| b.total_playtime_seconds().cmp(&a.total_playtime_seconds()));
         }
     }
 
@@ -597,6 +597,17 @@ fn App() -> Element {
                                             proton_runners: proton_runners.clone(),
                                             steam_prefixes: steam_prefixes.clone(),
                                             steam_launch_option: steam_launch_option.clone(),
+                                            on_previous_playtime_change: move |(id, seconds): (u64, u64)| {
+                                                update_vn_and_save(
+                                                    &mut vns,
+                                                    id,
+                                                    move |vn| {
+                                                        vn.previous_playtime_seconds = seconds;
+                                                    },
+                                                    "Could not save previous playtime".to_string(),
+                                                );
+                                            },
+
                                             on_notes_change: move |(id, notes): (u64, String)| {
                                                 update_vn_and_save(
                                                     &mut vns,
@@ -763,8 +774,12 @@ fn App() -> Element {
                                                                             started_time,
                                                                             &settings.read(),
                                                                         );
-                                                                        thread::spawn(move || {
-                                                                            let wait_result = child.wait();
+                                                                        //wait on a blocking thread, then record the session in the in-memory library
+                                                                        //so later saves from the ui don't overwrite it
+                                                                        spawn(async move {
+                                                                            let wait_result = tokio::task::spawn_blocking(move || child.wait())
+                                                                                .await
+                                                                                .unwrap_or_else(|error| Err(std::io::Error::other(error)));
                                                                             if let Some(log_path) = launch_log_path {
                                                                                 if let Err(error) = update_latest_launch_log(&log_path) {
                                                                                     println!("Could not update latest launch log: {error}");
@@ -779,26 +794,20 @@ fn App() -> Element {
                                                                                         duration_seconds,
                                                                                         notes: None,
                                                                                     };
-                                                                                    let save_result = add_play_session_to_library(
-                                                                                        vn_id,
-                                                                                        play_session,
-                                                                                    );
-                                                                                    match save_result {
-                                                                                        Ok(()) => {
-                                                                                            println!(
-                                                                                                "VN {vn_id} closed after {duration_seconds} seconds and was saved.",
-                                                                                            );
-                                                                                        }
-                                                                                        Err(error) => {
-                                                                                            println!("Could not save measured play session: {error}");
+                                                                                    for vn in vns.write().iter_mut() {
+                                                                                        if vn.id == vn_id {
+                                                                                            vn.play_sessions.push(play_session.clone());
                                                                                         }
                                                                                     }
+                                                                                    save_vns_or_log(&vns, "Could not save measured play session".to_string());
+                                                                                    println!("VN {vn_id} closed after {duration_seconds} seconds and was saved.");
                                                                                 }
                                                                                 Err(error) => {
                                                                                     println!("Could not monitor VN process: {error}");
                                                                                 }
                                                                             }
-                                                                            discord_presence::vn_closed(&load_settings().unwrap_or_default());
+                                                                            //talking to discord can block, so keep it off the ui thread
+                                                                            thread::spawn(|| discord_presence::vn_closed(&load_settings().unwrap_or_default()));
                                                                         });
                                                                     }
                                                                     Err(error) => {
@@ -1633,11 +1642,4 @@ fn latest_played_at(vn: &VisualNovel) -> String {
         .map(|session| session.started_at.clone())
         .max()
         .unwrap_or_default()
-}
-
-fn total_playtime_seconds(vn: &VisualNovel) -> u64 {
-    vn.play_sessions
-        .iter()
-        .map(|session| session.duration_seconds)
-        .sum()
 }

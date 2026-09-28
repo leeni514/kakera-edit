@@ -50,6 +50,9 @@ pub struct VisualNovel {
     #[serde(default)]
     pub active_route: Option<String>,
     pub play_sessions: Vec<PlaySession>,
+    ///playtime from before the vn was added to kakera, set by the user
+    #[serde(default)]
+    pub previous_playtime_seconds: u64,
 }
 impl VisualNovel {
     ///a new vn with nothing set except its id and title
@@ -78,7 +81,17 @@ impl VisualNovel {
             routes: Vec::new(),
             active_route: None,
             play_sessions: Vec::new(),
+            previous_playtime_seconds: 0,
         }
+    }
+    ///recorded sessions plus any playtime from before kakera
+    pub fn total_playtime_seconds(&self) -> u64 {
+        self.previous_playtime_seconds
+            + self
+                .play_sessions
+                .iter()
+                .map(|session| session.duration_seconds)
+                .sum::<u64>()
     }
 }
 impl Default for LaunchMode {

@@ -2049,3 +2049,25 @@ select option {
   border-radius: var(--radius-sm);
   object-fit: cover;
 }
+
+.previous-playtime {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.previous-playtime label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.previous-playtime input {
+  width: 5em;
+}
+
+.previous-playtime .setting-help {
+  flex-basis: 100%;
+}
