@@ -2071,3 +2071,49 @@ select option {
 .previous-playtime .setting-help {
   flex-basis: 100%;
 }
+
+.vndb-info {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.vndb-info-grid {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px var(--space-3);
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.vndb-info-grid dt {
+  color: var(--muted-2);
+}
+
+.vndb-info-grid dd {
+  margin: 0;
+  color: var(--text);
+}
+
+.vndb-info-status {
+  color: var(--muted-2);
+  font-size: 0.85rem;
+}
+
+.route-suggestions {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.route-suggestion {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text);
+}
+
+.route-suggestion-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}

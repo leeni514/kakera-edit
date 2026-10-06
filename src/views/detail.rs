@@ -1,5 +1,6 @@
 use crate::models::{format_playtime, LaunchMode, StoryRoute, VisualNovel};
 use crate::views::library::cover_source;
+use crate::views::vndb_info::{RouteSuggestions, VndbInfo};
 use crate::vn_markup::{DescriptionPart, parse_description};
 use crate::wine::{ProtonRunner, SteamPrefix, WineRunner};
 use dioxus::prelude::*;
@@ -186,6 +187,9 @@ pub fn DetailView(
             }
             div { class: "detail-tab-content",
                 if selected_tab == DetailTab::Info {
+                    if let Some(vndb_id) = vn.vndb_id.clone() {
+                        VndbInfo { vndb_id }
+                    }
                     h3 { "Tags" }
                     div { class: "tag-editor",
                         div { class: "tag-chip-list",
@@ -736,6 +740,14 @@ pub fn DetailView(
                 if selected_tab == DetailTab::Routes {
                     h3 { "Routes" }
                     p { "Routes tracked: {vn.routes.len()}" }
+                    if let Some(vndb_id) = vn.vndb_id.clone() {
+                        RouteSuggestions {
+                            vn_id: vn.id,
+                            vndb_id,
+                            existing_routes: vn.routes.iter().map(|route| route.name.clone()).collect::<Vec<_>>(),
+                            on_route_add,
+                        }
+                    }
                     label {
                         "New route"
                         input {
