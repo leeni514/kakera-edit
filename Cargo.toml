@@ -18,6 +18,9 @@ rfd = "0.17.2"
 discord-rich-presence = "1.1.0"
 base64 = "0.22.1"
 
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Diagnostics_ToolHelp", "Win32_System_Threading"] }
+
 [features]
 default = ["desktop"]
 web = ["dioxus/web"]

@@ -1,5 +1,6 @@
 mod covers;
 mod discord_presence;
+mod game_process;
 mod image_upload;
 mod launcher;
 mod library_scan;
@@ -13,6 +14,7 @@ mod vndb;
 mod wine;
 
 use covers::cache_cover_image;
+use game_process::{game_folder_for, wait_for_game_exit};
 use image_upload::upload_image;
 #[cfg(target_os = "linux")]
 use launcher::install_steam_tool_wrapper;
@@ -743,6 +745,7 @@ fn App() -> Element {
                                                                     }
                                                                 };
 
+                                                                let game_folder = game_folder_for(vn.game_folder.as_deref(), &path);
                                                                 match launch_executable(
                                                                     path,
                                                                     vn.launch_mode,
@@ -756,7 +759,7 @@ fn App() -> Element {
                                                                     launch_environment,
                                                                     launch_log_path.clone(),
                                                                 ) {
-                                                                    Ok(mut child) => {
+                                                                    Ok(child) => {
                                                                         let started_time = Utc::now();
                                                                         let started_at = started_time.to_rfc3339();
                                                                         let started_timer = Instant::now();
@@ -777,7 +780,10 @@ fn App() -> Element {
                                                                         //wait on a blocking thread, then record the session in the in-memory library
                                                                         //so later saves from the ui don't overwrite it
                                                                         spawn(async move {
-                                                                            let wait_result = tokio::task::spawn_blocking(move || child.wait())
+                                                                            //launchers can exit before the game does, so keep waiting while the game folder has a running process
+                                                                            let wait_result = tokio::task::spawn_blocking(move || {
+                                                                                    wait_for_game_exit(child, game_folder)
+                                                                                })
                                                                                 .await
                                                                                 .unwrap_or_else(|error| Err(std::io::Error::other(error)));
                                                                             if let Some(log_path) = launch_log_path {
@@ -786,8 +792,10 @@ fn App() -> Element {
                                                                                 }
                                                                             }
                                                                             match wait_result {
-                                                                                Ok(_status) => {
-                                                                                    let duration_seconds = started_timer.elapsed().as_secs();
+                                                                                Ok(last_seen_running) => {
+                                                                                    let duration_seconds = last_seen_running
+                                                                                        .duration_since(started_timer)
+                                                                                        .as_secs();
                                                                                     let play_session = PlaySession {
                                                                                         vn_id,
                                                                                         started_at: started_at.clone(),
