@@ -21,16 +21,19 @@ pub async fn upload_image(path: PathBuf) -> Result<String, Box<dyn std::error::E
         .text("reqtype", "fileupload")
         .part("fileToUpload", Part::bytes(image_bytes).file_name(file_name));
     //catbox drops connections that don't send a user agent
-    let response_text = reqwest::Client::builder()
+    let response = reqwest::Client::builder()
         .user_agent(concat!("Kakera/", env!("CARGO_PKG_VERSION")))
         .build()?
         .post(CATBOX_UPLOAD_URL)
         .multipart(form)
         .send()
-        .await?
-        .error_for_status()?
-        .text()
         .await?;
+    let status = response.status();
+    let response_text = response.text().await?;
+    //catbox explains errors in the body, e.g. 412 "No files given."
+    if !status.is_success() {
+        return Err(format!("Upload failed ({status}): {}", response_text.trim()).into());
+    }
     let image_url = response_text.trim().to_string();
     if !image_url.starts_with("https://") {
         return Err(format!("Upload failed: {image_url}").into());
