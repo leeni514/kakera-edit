@@ -45,9 +45,7 @@ use std::thread;
 use std::time::Instant;
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
-const BG_IMAGE: Asset = asset!("/assets/hikarublur.png");
-const LOGO_IMAGE: Asset = asset!("/assets/kakeralogo.png");
-const STARS_IMAGE: Asset = asset!("/assets/stars.jpg");
+const SORA_FONT: Asset = asset!("/assets/fonts/Sora.ttf");
 
 fn main() {
     let config = Config::new().with_window(
@@ -75,6 +73,21 @@ enum AppView {
     Library,
     Playtime,
     Settings,
+}
+
+///the kakera shard, a crystal with a chip knocked off the top (same shapes as assets/logo-mark.svg)
+#[component]
+fn KakeraMark() -> Element {
+    rsx! {
+        svg {
+            class: "logo-mark",
+            view_box: "9 -4 46 67",
+            "aria-hidden": "true",
+            polygon { points: "23,14.6 12,30 32,62 30,23", fill: "#2f74e8" }
+            polygon { points: "30,23 32,62 52,30 43,17.4 35.5,19", fill: "#4790ff" }
+            polygon { points: "35,-1.5 45.5,13.9 38,15.5 32.5,19.5 25.5,11.1", fill: "#9cc4ff" }
+        }
+    }
 }
 
 ///for resizing the window on linux
@@ -241,10 +254,12 @@ fn App() -> Element {
     rsx! {
 
             document::Link { rel: "stylesheet", href: MAIN_CSS }
+            document::Style {
+                "@font-face {{ font-family: 'Sora'; src: url('{SORA_FONT}') format('truetype'); font-weight: 100 800; }}"
+            }
 
             main {
                 class: "app-frame",
-                style: "--app-bg-image: url('{BG_IMAGE}'); --stars-image: url('{STARS_IMAGE}');",
 
                 //window resize handles
                 ResizeHandle { class: "resize-north", direction: ResizeDirection::North }
@@ -268,7 +283,6 @@ fn App() -> Element {
                     direction: ResizeDirection::NorthWest,
                 }
 
-                div { class: "star-overlay" }
                 //titlebar
                 div { class: "win-titlebar",
 
@@ -345,12 +359,8 @@ fn App() -> Element {
 
                         //kakera logo
                         div { class: "logo",
-
-                            img {
-                                class: "logo-image",
-                                src: LOGO_IMAGE,
-                                alt: "Kakera",
-                            }
+                            KakeraMark {}
+                            span { class: "logo-wordmark", "kakera" }
                         }
 
                         nav { class: "sidebar-nav",

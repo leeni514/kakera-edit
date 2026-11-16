@@ -1,4 +1,4 @@
-![Kakera Logo](./assets/kakeralogoblue.png)
+![Kakera Logo](./assets/kakera-logo.png)
 
 <h1 align="center">Kakera</h1>
 
