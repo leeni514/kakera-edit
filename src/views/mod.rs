@@ -1,9 +1,11 @@
 pub mod add_vn;
 pub mod detail;
 pub mod library;
+pub mod playtime;
 pub mod settings;
 pub mod vndb_info;
 pub use add_vn::{AddVnForm, NewVN};
 pub use detail::DetailView;
 pub use library::LibraryView;
+pub use playtime::PlaytimeView;
 pub use settings::SettingsView;

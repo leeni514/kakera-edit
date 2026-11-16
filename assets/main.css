@@ -2117,3 +2117,362 @@ select option {
   grid-template-columns: 1fr 1fr;
   gap: var(--space-2);
 }
+
+.playtime-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.playtime-heading h2 {
+  margin: 0;
+}
+
+.playtime-heading .topbar-segmented-control {
+  grid-template-columns: repeat(3, 84px);
+}
+
+.playtime-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.playtime-stats > div {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel-fade);
+  padding: var(--space-3) var(--space-4);
+}
+
+.playtime-stats strong {
+  color: var(--text);
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.playtime-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.playtime-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.playtime-swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.playtime-chart {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  row-gap: 6px;
+  padding-top: var(--space-2);
+}
+
+.playtime-y-axis {
+  position: relative;
+  height: var(--chart-height);
+}
+
+.playtime-tick-label {
+  position: absolute;
+  right: 10px;
+  transform: translateY(50%);
+  color: var(--muted-2);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.playtime-plot {
+  position: relative;
+  display: flex;
+  height: var(--chart-height);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.playtime-gridline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--line);
+  pointer-events: none;
+}
+
+.playtime-day {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  padding: 0 1px;
+  border-radius: 4px 4px 0 0;
+}
+
+.playtime-day:hover {
+  background: var(--accent-soft);
+}
+
+.playtime-bar {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  width: 100%;
+  max-width: 24px;
+  height: 100%;
+}
+
+.playtime-segment {
+  min-height: 2px;
+}
+
+.playtime-segment:last-child {
+  border-radius: 4px 4px 0 0;
+}
+
+.playtime-tooltip {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 50%;
+  display: none;
+  width: max-content;
+  min-width: 180px;
+  max-width: 280px;
+  transform: translateX(-50%);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-sidebar-solid);
+  box-shadow: 0 12px 32px var(--shadow-detail);
+  padding: var(--space-2) var(--space-3);
+  pointer-events: none;
+}
+
+.playtime-tooltip.align-start {
+  left: 0;
+  transform: none;
+}
+
+.playtime-tooltip.align-end {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.playtime-day:hover .playtime-tooltip {
+  display: grid;
+  gap: 4px;
+}
+
+.playtime-tooltip-date {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.playtime-tooltip-total {
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.playtime-tooltip-row {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.playtime-tooltip-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playtime-tooltip-time {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.playtime-x-axis {
+  display: flex;
+}
+
+.playtime-x-label {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: visible;
+  color: var(--muted-2);
+  font-size: 0.75rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.playtime-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.playtime-table th {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: left;
+  text-transform: uppercase;
+  padding: 0 var(--space-2) var(--space-1);
+  border-bottom: 1px solid var(--line);
+}
+
+.playtime-table td {
+  color: var(--text);
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.playtime-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.playtime-table .numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.playtime-table-game {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.activity-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.activity-calendar {
+  --activity-gap: 3px;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  grid-template-areas:
+    ". months"
+    "weekdays grid"
+    ". key";
+  row-gap: 6px;
+  max-width: 900px;
+}
+
+.activity-months {
+  grid-area: months;
+  display: grid;
+  grid-template-columns: repeat(53, minmax(0, 1fr));
+  column-gap: var(--activity-gap);
+  color: var(--muted-2);
+  font-size: 0.75rem;
+}
+
+.activity-month {
+  white-space: nowrap;
+}
+
+.activity-weekdays {
+  grid-area: weekdays;
+  display: grid;
+  grid-template-rows: repeat(7, minmax(0, 1fr));
+  row-gap: var(--activity-gap);
+  color: var(--muted-2);
+  font-size: 0.7rem;
+}
+
+.activity-weekdays span {
+  display: flex;
+  align-items: center;
+}
+
+.activity-grid {
+  grid-area: grid;
+  display: grid;
+  grid-template-columns: repeat(53, minmax(0, 1fr));
+  grid-template-rows: repeat(7, auto);
+  grid-auto-flow: column;
+  gap: var(--activity-gap);
+}
+
+.activity-cell {
+  position: relative;
+  aspect-ratio: 1;
+}
+
+.activity-cell .activity-square {
+  width: 100%;
+  height: 100%;
+}
+
+.activity-square {
+  display: block;
+  border-radius: 3px;
+}
+
+.activity-cell:hover .activity-square {
+  outline: 1px solid var(--text);
+  outline-offset: 1px;
+}
+
+.activity-cell:hover .playtime-tooltip {
+  display: grid;
+  gap: 4px;
+}
+
+.activity-cell .playtime-tooltip.below {
+  top: calc(100% + 6px);
+}
+
+.activity-cell .playtime-tooltip.above {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
+.activity-key {
+  grid-area: key;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  color: var(--muted-2);
+  font-size: 0.75rem;
+}
+
+.activity-key .activity-square {
+  width: 11px;
+  height: 11px;
+}
+
+.activity-key span:first-child {
+  margin-right: 2px;
+}
+
+.activity-key span:last-child {
+  margin-left: 2px;
+}

@@ -31,7 +31,7 @@ use storage::{
     save_settings,
 };
 use system::{is_flatpak_document_portal_path, open_folder, umu_launcher_is_available};
-use views::{AddVnForm, DetailView, LibraryView, NewVN, SettingsView};
+use views::{AddVnForm, DetailView, LibraryView, NewVN, PlaytimeView, SettingsView};
 use vndb::search_vns;
 
 use chrono::Utc;
@@ -73,6 +73,7 @@ fn main() {
 #[derive(Debug, Clone, PartialEq)]
 enum AppView {
     Library,
+    Playtime,
     Settings,
 }
 
@@ -362,6 +363,15 @@ fn App() -> Element {
                                 },
 
                                 "Library"
+                            }
+                            button {
+                                class: if selected_view == AppView::Playtime { "nav-item active" } else { "nav-item" },
+
+                                onclick: move |_| {
+                                    current_view.set(AppView::Playtime);
+                                },
+
+                                "Playtime"
                             }
                             button {
                                 class: if selected_view == AppView::Settings { "nav-item active" } else { "nav-item" },
@@ -1306,6 +1316,8 @@ fn App() -> Element {
                                     }
                                 }
                             }
+                        } else if selected_view == AppView::Playtime {
+                            PlaytimeView { vns: vns.read().clone() }
                         } else {
                             SettingsView {
                                 discord_rich_presence_enabled: settings.read().discord_rich_presence_enabled,
