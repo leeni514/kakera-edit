@@ -1,6 +1,6 @@
 [package]
 name = "kakera"
-version = "0.1.8"
+version = "0.1.9"
 authors = ["enotan <uminekolover99@gmail.com>"]
 edition = "2024"
 
