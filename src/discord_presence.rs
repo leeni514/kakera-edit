@@ -91,11 +91,6 @@ fn vn_activity(
     settings: &AppSettings,
 ) -> activity::Activity<'static> {
     let timestamps = activity::Timestamps::new().start(started_at.timestamp_millis());
-    let session_seconds = (Utc::now() - started_at).num_seconds().max(0) as u64;
-    let playtime_text = format!(
-        "{} played",
-        format_playtime(vn.total_playtime_seconds() + session_seconds)
-    );
     let mut assets = activity::Assets::new().large_text(vn.title.clone());
     let status_text = if settings.discord_show_active_route {
         match vn.active_route.clone() {
@@ -117,13 +112,20 @@ fn vn_activity(
     if let Some(cover_url) = cover_image {
         assets = assets.large_image(cover_url);
     }
-    activity::Activity::new()
+    let mut activity = activity::Activity::new()
         .name(vn.title.clone())
         .details(status_text)
-        .state(playtime_text)
         .timestamps(timestamps)
         .assets(assets)
-        .activity_type(activity::ActivityType::Playing)
+        .activity_type(activity::ActivityType::Playing);
+    if settings.discord_show_total_playtime {
+        let session_seconds = (Utc::now() - started_at).num_seconds().max(0) as u64;
+        activity = activity.state(format!(
+            "{} played",
+            format_playtime(vn.total_playtime_seconds() + session_seconds)
+        ));
+    }
+    activity
 }
 ///sends the activity to discord, or clears it when rich presence is turned off
 fn update_activity(

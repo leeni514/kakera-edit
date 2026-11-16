@@ -1338,6 +1338,7 @@ fn App() -> Element {
 
                                 discord_status_text: settings.read().discord_status_text.clone(),
                                 discord_show_active_route: settings.read().discord_show_active_route,
+                                discord_show_total_playtime: settings.read().discord_show_total_playtime,
                                 discord_custom_cover_url: settings.read().discord_custom_cover_url.clone(),
 
                                 on_discord_status_text_change: move |status_text| {
@@ -1347,6 +1348,11 @@ fn App() -> Element {
 
                                 on_discord_show_active_route_change: move |enabled| {
                                     settings.write().discord_show_active_route = enabled;
+                                    save_settings_or_log(&settings);
+                                },
+
+                                on_discord_show_total_playtime_change: move |enabled| {
+                                    settings.write().discord_show_total_playtime = enabled;
                                     save_settings_or_log(&settings);
                                 },
 

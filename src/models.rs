@@ -173,6 +173,9 @@ pub struct AppSettings {
     pub discord_status_text: String,
     #[serde(default)]
     pub discord_show_active_route: bool,
+    ///off hides the "42h 31m played" line on the vn presence
+    #[serde(default = "default_discord_show_total_playtime")]
+    pub discord_show_total_playtime: bool,
     #[serde(default)]
     pub discord_custom_cover_url: String,
     #[serde(default = "default_discord_idle_name")]
@@ -189,6 +192,9 @@ pub struct AppSettings {
 fn default_discord_status_text() -> String {
     "Reading".to_string()
 }
+fn default_discord_show_total_playtime() -> bool {
+    true
+}
 fn default_discord_idle_name() -> String {
     "Kakera".to_string()
 }
@@ -198,6 +204,7 @@ impl Default for AppSettings {
             discord_rich_presence_enabled: true,
             discord_status_text: default_discord_status_text(),
             discord_show_active_route: true,
+            discord_show_total_playtime: default_discord_show_total_playtime(),
             discord_custom_cover_url: String::new(),
             discord_idle_name: default_discord_idle_name(),
             discord_idle_image_url: String::new(),

@@ -7,6 +7,7 @@ pub fn SettingsView(
     discord_rich_presence_enabled: bool,
     discord_status_text: String,
     discord_show_active_route: bool,
+    discord_show_total_playtime: bool,
     discord_custom_cover_url: String,
     discord_idle_name: String,
     discord_idle_image_url: String,
@@ -17,6 +18,7 @@ pub fn SettingsView(
     on_discord_rich_presence_change: EventHandler<bool>,
     on_discord_status_text_change: EventHandler<String>,
     on_discord_show_active_route_change: EventHandler<bool>,
+    on_discord_show_total_playtime_change: EventHandler<bool>,
     on_discord_custom_cover_url_change: EventHandler<String>,
     on_discord_idle_name_change: EventHandler<String>,
     on_idle_image_pick: EventHandler<PathBuf>,
@@ -71,6 +73,17 @@ pub fn SettingsView(
                         checked: discord_show_active_route,
                         onchange: move |event| {
                             on_discord_show_active_route_change.call(event.checked());
+                        },
+                    }
+                }
+                label { class: "setting-row",
+                    span { "Show total playtime" }
+                    input {
+                        class: "setting-checkbox",
+                        r#type: "checkbox",
+                        checked: discord_show_total_playtime,
+                        onchange: move |event| {
+                            on_discord_show_total_playtime_change.call(event.checked());
                         },
                     }
                 }
